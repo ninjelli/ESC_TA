@@ -1,4 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using ESC_TA.DTO;
+using ESC_TA.Models;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace ESC_TA.Controllers;
 
@@ -6,9 +9,10 @@ namespace ESC_TA.Controllers;
 [Route("[controller]")]
 public class HrManagementController : ControllerBase
 {
-    public HrManagementController()
+    private readonly HrContext _hrContext;
+    public HrManagementController(HrContext hrContext)
     {
-
+        _hrContext = hrContext;
     }
 
     [HttpGet("employees")]
@@ -16,7 +20,16 @@ public class HrManagementController : ControllerBase
     {
         try
         {
-            return Ok(null);
+            var allInfo = _hrContext.Employees
+                .Include(emp => emp.Dependents)
+                .Include(emp => emp.Job)
+                .Include(emp => emp.Department)
+                .ThenInclude(dep => dep.Location)
+                .ThenInclude(location => location.Country)
+                .ThenInclude(country => country.Region)
+                .Select(emp => emp.EmployeeToDto());
+
+            return Ok(allInfo);
         }
         catch (Exception exception)
         { 
