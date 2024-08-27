@@ -29,6 +29,9 @@ public class HrManagementController : ControllerBase
                 .ThenInclude(country => country.Region)
                 .Select(emp => emp.EmployeeToDto());
 
+            if (allInfo.Count() == 0)
+                return NotFound();
+
             return Ok(allInfo);
         }
         catch (Exception exception)
@@ -53,7 +56,31 @@ public class HrManagementController : ControllerBase
     {
         try
         {
-            return Ok(null);
+            if (id == null && firstName == null && lastName == null && email == null && departmentName == null && country == null && regionName == null) 
+                return BadRequest("No valid query strings provided for employement search");
+
+            var filteredInfo = _hrContext.Employees
+                .Include(emp => emp.Dependents)
+                .Include(emp => emp.Job)
+                .Include(emp => emp.Department)
+                .ThenInclude(dep => dep.Location)
+                .ThenInclude(location => location.Country)
+                .ThenInclude(country => country.Region)
+                .Where(emp => 
+                    emp.EmployeeId == (id ?? emp.EmployeeId)
+                    && emp.FirstName == (firstName ?? emp.FirstName)
+                    && emp.LastName == (lastName ?? emp.LastName)
+                    && emp.Email == (email ?? emp.Email)
+                    && emp.Department.DepartmentName == (departmentName ?? emp.Department.DepartmentName)
+                    && emp.Department.Location.Country.CountryName == (country ?? emp.Department.Location.Country.CountryName)
+                    && emp.Department.Location.Country.Region.RegionName == (regionName ?? emp.Department.Location.Country.Region.RegionName)
+                )
+                .Select(emp => emp.EmployeeToDto());
+
+            if (filteredInfo.Count() == 0)
+                return NotFound();
+
+            return Ok(filteredInfo);
         }
         catch (Exception exception)
         {
